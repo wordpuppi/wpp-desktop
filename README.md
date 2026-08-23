@@ -28,7 +28,8 @@ readable and auditable.
 
 Signed builds are published on the [Releases](../../releases) tab.
 macOS artifacts are Developer-ID signed, notarized, and stapled. The app
-auto-updates from `https://updates.wordpuppi.com/desktop/latest.json`.
+auto-updates from the Releases page here, with `updates.wordpuppi.com` as a
+fallback (see [Updater signing](#7-updater-signing)).
 
 ## Layout
 
@@ -115,12 +116,28 @@ It is **not** a member of the private backend's Cargo workspace, so Tauri
 never compiles against the Loco/axum server. The pnpm `apps/*` glob picks
 up `apps/wpp-desktop` automatically.
 
-### 7. Updater signing
+### 7. Updater signing and endpoints
 
-The updater endpoint is `https://updates.wordpuppi.com/desktop/latest.json`.
 The verification key is public and embedded in `tauri.conf.json >
 plugins.updater.pubkey`. The matching private signing key is held only as
 a CI secret and is used to sign release artifacts at build time.
+
+As of 0.1.44 the updater checks two endpoints, in order:
+
+1. `https://github.com/wordpuppi/wpp-desktop/releases/latest/download/latest.json`
+2. `https://updates.wordpuppi.com/desktop/latest.json`
+
+Tauri falls through to the second only when the first is *unreachable*, so
+GitHub is the effective source and the second is a host-outage fallback. Each
+release publishes a manifest to both hosts: same version, same signature,
+differing only in the download URL, so an app that reads the manifest from
+GitHub also downloads the payload from GitHub. The signature covers the
+tarball bytes, which are identical on both hosts, so either download verifies
+against the same key.
+
+Builds 0.1.43 and earlier only know the `updates.wordpuppi.com` endpoint — the
+list is compiled into the binary, so it cannot be changed retroactively. That
+host therefore keeps serving every release.
 
 ### 8. Terminal dock IPC (#427/#549)
 

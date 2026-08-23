@@ -1,5 +1,13 @@
 # WordPuppi Desktop — Changelog
 
+## 0.1.44
+
+- Updates are now checked and downloaded from the GitHub Releases page
+  (github.com/wordpuppi/wpp-desktop) as the primary source, with
+  updates.wordpuppi.com kept as an automatic fallback. Builds 0.1.43 and
+  earlier keep using updates.wordpuppi.com — the endpoint list is baked in at
+  build time and cannot be changed retroactively.
+
 ## 0.1.43
 
 - Releases are now published to GitHub as well as the update endpoint
