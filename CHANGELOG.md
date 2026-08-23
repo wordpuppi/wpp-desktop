@@ -1,5 +1,11 @@
 # WordPuppi Desktop — Changelog
 
+## 0.1.45
+
+- No functional change. This release exists to exercise the GitHub update path
+  end to end: 0.1.44 was the first build that checks GitHub first, so 0.1.45 is
+  the first update it can actually pull from there.
+
 ## 0.1.44
 
 - Updates are now checked and downloaded from the GitHub Releases page
