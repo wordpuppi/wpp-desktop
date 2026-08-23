@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WordPuppi</title>
+  </head>
+  <body>
+    <div id="shell">
+      <!-- #623 v4 (macOS): the window is TitleBarStyle::Overlay (the only style
+           with a true full-size content view — Transparent was NOT, which is why
+           the badge could never reach the band through 0.1.26). This is the
+           VISIBLE 28px titlebar band, theme-matched to the admin, holding the
+           native traffic lights + site badge + update pill; it is also the only
+           draggable region. It MUST live here in the shell, not the iframe:
+           `data-tauri-drag-region` only works in the main frame
+           (__TAURI_INTERNALS__). Mac-only (styles.css); other OSes keep native
+           decorations. -->
+      <div id="drag" data-tauri-drag-region></div>
+      <!-- #622: update pill, fixed TOP-RIGHT above the admin iframe and the
+           #drag overlay (z-index). Shown by shell.ts on update://ready
+           (background download finished — the on-disk app is already the new
+           version). Deliberately NOT a drag region so both buttons stay
+           clickable. Writing Desk treatment, v2 "subtle" (styles.css): quiet
+           outline restart chip whose amber lives in a CSS ::before status dot
+           (no icon markup — the label carries the meaning), amber wash on
+           hover/focus only; quiet ghost dismiss with a lucide X. -->
+      <div id="update-pill" hidden>
+        <button id="update-restart" title="Restart to update WordPuppi">
+          <span>Restart to Update</span>
+        </button>
+        <button id="update-dismiss" title="Dismiss" aria-label="Dismiss update notice">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
+        </button>
+      </div>
+      <!-- #623: Discord-style current-site badge (favicon + name), pinned to the
+           traffic-light strip — horizontally centered AND vertically level with
+           the lights (Rick 0.1.25 v3: it was reading as sitting in the admin
+           header). Rendered from the admin's localStorage 'wpp-current-site' (same
+           origin). Mac-only like the #drag band; pointer-events:none so window drag
+           passes through. -->
+      <div id="site-badge" hidden>
+        <img id="site-badge-icon" alt="" hidden />
+        <span id="site-badge-name"></span>
+      </div>
+      <!-- Top chrome: env picker + colored env badge. The whole bar is dev-only
+           chrome (its sole payload is the env picker) — default hidden so a
+           release build shows NO strip above the admin iframe, only the native
+           macOS title bar (which already reads "WordPuppi"). boot() reveals it
+           when the debug marker is set. -->
+      <header id="topbar" hidden>
+        <div id="brand">WordPuppi</div>
+        <div id="env-controls" hidden>
+          <label for="env-select">Environment</label>
+          <select id="env-select">
+            <option value="local">Local</option>
+            <option value="qa">QA</option>
+            <option value="prod">Prod</option>
+          </select>
+          <span id="env-badge" title="">local</span>
+        </div>
+      </header>
+
+      <!-- Top region: the wrapped @wordpuppi/admin bundle -->
+      <iframe id="admin" title="WordPuppi Admin" src="/index.html#env=local"></iframe>
+
+      <!-- 6px drag handle (row-resize); double-click collapses/restores -->
+      <div id="dock-resizer" title="Drag to resize · double-click to collapse"></div>
+
+      <!-- Bottom region: Claude Code terminal dock (#427) -->
+      <section id="dock" hidden>
+        <div id="dock-header">
+          <div id="dock-title">
+            <span class="dot"></span>
+            <span>Claude Code</span>
+            <span id="dock-cwd" title=""></span>
+          </div>
+          <div id="dock-actions">
+            <button id="dock-restart" title="Restart">Restart</button>
+            <button id="dock-close" title="Close (Cmd+`)">✕</button>
+          </div>
+        </div>
+        <div id="dock-body">
+          <!-- xterm mounts here when running -->
+          <div id="terminal-mount"></div>
+          <!-- install-hint / exited overlays -->
+          <div id="dock-overlay" hidden></div>
+        </div>
+      </section>
+    </div>
+    <script type="module" src="./shell.ts"></script>
+  </body>
+</html>

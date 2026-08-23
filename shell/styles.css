@@ -1,0 +1,516 @@
+:root {
+  /* Titlebar band geometry (Rick: 50% thicker than the original 28px). The
+     ONE height knob: band, admin inset, badge/pill centering, and the Rust
+     traffic_light_position (lib.rs — y=(h-12)/2) all key off it. */
+  --titlebar-h: 42px;
+  --titlebar-center: calc(var(--titlebar-h) / 2);
+  --bar-h: 34px;
+  --dock-header-h: 32px;
+  --topbar-bg: #1f2430;
+  --topbar-fg: #e6e8ee;
+  --dock-bg: #ffffff;
+  --dock-fg: #1f2430;
+  --dock-border: #d7dae2;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --dock-bg: #12151c;
+    --dock-fg: #e6e8ee;
+    --dock-border: #2a2f3a;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+#shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* #623 v4 (macOS): the window is TitleBarStyle::Overlay — the ONLY style where
+   tao sets fullsize_content_view=true, i.e. the webview actually extends into
+   the titlebar band. (Transparent, used through 0.1.26, does NOT: the band was
+   native NSWindow background, which is why the badge kept rendering under it.)
+   The shell now OWNS the band: #drag paints the 28px strip (theme-matched to
+   the admin via data-admin-theme, set by shell.ts from the admin's `wpp-theme`
+   key; prefers-color-scheme fallback for 'system'), the traffic lights float in
+   it natively, the badge + pill are band-centered, and #shell reserves the
+   height so the admin iframe starts BELOW the band — no injected-inset hacks.
+   Dark #shell bg only kills the first-paint flash before the iframe loads.
+   `.mac` set by shell.ts; other OSes keep native decorations. */
+/* (--band-bg / --band-border moved into the root band-token block below —
+   the 0.1.28 outline pill reads them too, and it also shows on non-mac.) */
+html.mac #shell {
+  background: #09090b;
+  padding-top: var(--titlebar-h);
+}
+
+/* Writing Desk control tokens for band chrome (#622 pill, #623 badge) —
+   values mirror wpp-admin src/index.css (--primary / --primary-foreground /
+   --ring / --muted-foreground / --accent / --accent-foreground) so the pill
+   reads as a native admin control. Root-scoped (not .mac-scoped: the pill also
+   shows on non-mac, floating over the admin) with the same
+   data-admin-theme + prefers-color-scheme cascade as the band above. */
+:root {
+  --band-bg: #ffffff; /* admin --background (also the #drag band paint) */
+  --band-border: rgba(0, 0, 0, 0.08); /* the band's own bottom hairline */
+  --band-line: hsl(240 5.9% 90%); /* Zinc Line — admin --border, outline chip */
+  --band-primary: hsl(37.7 92.1% 50.2%); /* Lamplight Amber */
+  --band-primary-fg: hsl(240 10% 3.9%); /* Ink — text on amber is never white */
+  --band-ring: hsl(37.7 92.1% 50.2% / 0.5); /* admin focus-visible:ring-ring/50 */
+  --band-muted-fg: hsl(240 3.8% 46.1%); /* Zinc Voice */
+  --band-accent: hsl(240 4.8% 95.9%); /* Zinc Mist hover fill */
+  --band-accent-fg: hsl(240 5.9% 10%);
+}
+html[data-admin-theme='dark'] {
+  --band-bg: #09090b;
+  --band-border: rgba(255, 255, 255, 0.08);
+  --band-line: hsl(240 3.7% 15.9%); /* admin dark --border/--input */
+  --band-primary: hsl(43.3 96.4% 56.3%); /* amber brightens in dark mode */
+  --band-primary-fg: hsl(240 10% 3.9%);
+  --band-ring: hsl(43.3 96.4% 56.3% / 0.5);
+  --band-muted-fg: hsl(240 5% 64.9%);
+  --band-accent: hsl(240 3.7% 15.9%);
+  --band-accent-fg: hsl(0 0% 98%);
+}
+@media (prefers-color-scheme: dark) {
+  html:not([data-admin-theme='light']) {
+    --band-bg: #09090b;
+    --band-border: rgba(255, 255, 255, 0.08);
+    --band-line: hsl(240 3.7% 15.9%);
+    --band-primary: hsl(43.3 96.4% 56.3%);
+    --band-primary-fg: hsl(240 10% 3.9%);
+    --band-ring: hsl(43.3 96.4% 56.3% / 0.5);
+    --band-muted-fg: hsl(240 5% 64.9%);
+    --band-accent: hsl(240 3.7% 15.9%);
+    --band-accent-fg: hsl(0 0% 98%);
+  }
+}
+
+/* Rick 0.1.40: the band is DARK in BOTH themes — black in light mode, the
+   admin's own SIDEBAR grey in dark mode (it used to take --background, which
+   read as a second, darker strip above the grey sidebar). So on mac the band
+   chrome always lives in the dark register: only --band-bg flips with the
+   theme, every foreground token below is the dark set regardless. Comes after
+   the blocks above and matches their specificity, so it wins by order.
+   Mac-scoped on purpose: elsewhere there is no band and the pill floats over
+   admin content, where it must keep following the admin's theme. */
+html.mac {
+  --band-bg: #000; /* light mode: black band */
+  --band-border: rgba(255, 255, 255, 0.1);
+  --band-line: hsl(240 3.7% 24%); /* lifted off the near-black so it reads */
+  --band-primary: hsl(43.3 96.4% 56.3%);
+  --band-primary-fg: hsl(240 10% 3.9%);
+  --band-ring: hsl(43.3 96.4% 56.3% / 0.5);
+  --band-muted-fg: hsl(240 5% 72%); /* site name: ~8:1 on both band greys */
+  --band-accent: hsl(240 3.7% 20%);
+  --band-accent-fg: hsl(0 0% 98%);
+}
+html.mac[data-admin-theme='dark'] {
+  --band-bg: hsl(240 5.9% 10%); /* = admin --sidebar (dark) */
+}
+@media (prefers-color-scheme: dark) {
+  html.mac:not([data-admin-theme='light']) {
+    --band-bg: hsl(240 5.9% 10%);
+  }
+}
+
+/* The visible titlebar band + drag handle (a fullsize-content window has no
+   native drag region). Traffic lights render inside it at their native spot. */
+#drag {
+  display: none;
+}
+html.mac #drag {
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--titlebar-h);
+  z-index: 10;
+  background: var(--band-bg);
+  border-bottom: 1px solid var(--band-border);
+}
+
+/* ---- Update pill (#622): fixed TOP-RIGHT, Writing Desk band chrome ---- */
+/* 0.1.28 v2 "subtle" (Rick on 0.1.27: the solid amber fill out-shouted the
+   titlebar). The restart chip is demoted from the admin's PRIMARY button to
+   its OUTLINE register at titlebar grade — calm at rest, amber only on
+   hover/focus (Zed/Arc-style titlebar affordance):
+   - #update-restart at rest: --band-bg fill + 1px --band-line border
+     (= the admin outline Button: `border bg-background shadow-xs`), Zinc
+     Voice label, and a 6px Lamplight Amber DOT (::before) as the update-ready
+     signal — the only resting amber in the band (Desk Lamp Rule). The dot
+     breathes slowly so the pill is eventually noticed without shouting.
+   - hover/focus = the amber energy: 10% amber wash over the chip bg (the
+     admin's own --accentColor50 idiom, index.css) + amber-warmed border +
+     full-contrast text; focus adds the 3px amber ring.
+   - #update-dismiss = unchanged quiet ghost icon button: Zinc Voice glyph,
+     Zinc Mist fill on hover.
+   24px tall in the 42px band (v1 was 20px in 28px — proportionally QUIETER
+   now); 24px hit boxes ≥ the 20px floor; 3px focus ring still fits (30 < 42).
+   Solid --band-bg fill (not transparent) so the chip stays legible on
+   non-mac, where it floats over admin content instead of the band.
+   Above #drag (z-index 10) so both buttons take clicks; deliberately not a
+   drag region. */
+#update-pill {
+  position: fixed;
+  top: var(--titlebar-center);
+  transform: translateY(-50%);
+  right: 12px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  user-select: none;
+}
+#update-pill[hidden] {
+  display: none;
+}
+#update-pill button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  border: 0;
+  border-radius: 6px;
+  font-family: inherit; /* system-ui — the admin's One Family Rule, no mono */
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease-out,
+    border-color 150ms ease-out,
+    color 150ms ease-out,
+    box-shadow 150ms ease-out;
+}
+#update-pill button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--band-ring); /* admin ring-[3px] ring-ring/50 */
+}
+#update-restart {
+  padding: 0 10px 0 9px;
+  background: var(--band-bg);
+  border: 1px solid var(--band-line);
+  color: var(--band-muted-fg);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); /* shadow-xs — the Whisper Rule */
+}
+/* The update-ready signal: a small amber dot instead of an icon (the label
+   carries the meaning; the dot is the glow). Gentle 3s breath for eventual
+   discoverability — killed under prefers-reduced-motion. */
+#update-restart::before {
+  content: '';
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--band-primary);
+  animation: update-dot-breathe 3s ease-in-out infinite;
+}
+@keyframes update-dot-breathe {
+  50% {
+    opacity: 0.45;
+  }
+}
+#update-restart:hover {
+  background: color-mix(in srgb, var(--band-primary) 10%, var(--band-bg));
+  border-color: color-mix(in srgb, var(--band-primary) 40%, var(--band-line));
+  color: var(--band-accent-fg);
+}
+#update-restart:hover::before {
+  animation-play-state: paused; /* attention arrived — the dot rests */
+  opacity: 1;
+}
+#update-restart:active {
+  background: color-mix(in srgb, var(--band-primary) 18%, var(--band-bg));
+}
+#update-restart:focus-visible {
+  border-color: color-mix(in srgb, var(--band-primary) 40%, var(--band-line));
+  color: var(--band-accent-fg);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.05),
+    0 0 0 3px var(--band-ring);
+}
+#update-dismiss {
+  width: 24px;
+  padding: 0;
+  justify-content: center;
+  background: transparent;
+  color: var(--band-muted-fg);
+}
+#update-dismiss:hover {
+  background: var(--band-accent);
+  color: var(--band-accent-fg);
+}
+#update-dismiss:active {
+  background: color-mix(in srgb, var(--band-accent) 90%, var(--band-accent-fg));
+}
+@media (prefers-reduced-motion: reduce) {
+  #update-pill button {
+    transition: none;
+  }
+  #update-restart::before {
+    animation: none;
+  }
+}
+
+/* ---- Site badge (#623) ---- */
+/* Discord-style [favicon + name] for the currently-selected site, pinned to the
+   TOPMOST traffic-light strip and level with the lights (Rick 0.1.25 v3: 0.1.25's
+   top:5px chunky chip read as sitting in the admin header, not up in the titlebar
+   band). left:50% + translate(-50%,-50%) centers the chip horizontally AND lands
+   its own center on top:14px — the middle of the 28px #drag titlebar band, i.e.
+   the traffic-light vertical center — so it stays level with the lights whatever
+   the chip's height is (the magic 5px offset is gone; 14px is the eyeball knob).
+   Compact by design (14px icon, 12px text) so it reads as titlebar chrome, not
+   admin content. 0.1.27: the band is theme-matched now, so the old constant-dark
+   chip is gone — the badge is quiet Zinc Voice text straight on the band (same
+   --band-* tokens as the pill), like a macOS document title. Mac-only — it lives
+   in the #drag titlebar band, which only exists on macOS. pointer-events:none
+   so window drag passes through; the 40vw cap + ellipsis (below) truncates a long
+   name so it can't collide with the traffic lights (far left) or the pill (far
+   right). */
+#site-badge {
+  position: fixed;
+  top: var(--titlebar-center);
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 20;
+  pointer-events: none;
+  display: none;
+  align-items: center;
+  gap: 5px;
+  max-width: 40vw;
+  padding: 2px 8px;
+  color: var(--band-muted-fg);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  user-select: none;
+}
+/* :not([hidden]) — a bare `html.mac #site-badge` would outrank the UA/attr
+   [hidden] rule and the badge could never hide. */
+html.mac #site-badge:not([hidden]) {
+  display: flex;
+}
+#site-badge-icon {
+  /* #633 (Rick): 14px -> 21px ("50% bigger") -> 25px ("almost.. 20% even bigger"). */
+  width: 25px;
+  height: 25px;
+  border-radius: 5px;
+  flex: none;
+}
+#site-badge-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* (#623 v4: the band's 28px is reserved unconditionally above — the debug
+   env-picker topbar simply flows below it, no extra offset needed.) */
+
+/* ---- Top bar ---- */
+#topbar {
+  height: var(--bar-h);
+  min-height: var(--bar-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  background: var(--topbar-bg);
+  color: var(--topbar-fg);
+  font-size: 13px;
+  user-select: none;
+}
+
+/* `display: flex` above beats the UA [hidden] rule — restore it so the bar
+   stays gone until boot() reveals it in debug builds. */
+#topbar[hidden] {
+  display: none;
+}
+
+#brand {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+#env-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* `display: flex` above would beat the UA [hidden] rule — restore it so the
+   markup's default-hidden holds until boot() reveals the picker (debug only). */
+#env-controls[hidden] {
+  display: none;
+}
+
+#env-controls label {
+  opacity: 0.7;
+}
+
+#env-select {
+  background: #2a3040;
+  color: var(--topbar-fg);
+  border: 1px solid #3a4152;
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 13px;
+}
+
+#env-badge {
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #10131a;
+}
+
+/* Env badge colors: local=gray / QA=amber / prod=green */
+#env-badge[data-env="local"] {
+  background: #9aa3b2;
+}
+#env-badge[data-env="qa"] {
+  background: #f4b740;
+}
+#env-badge[data-env="prod"] {
+  background: #3fbf6a;
+}
+
+/* ---- Admin iframe ---- */
+#admin {
+  flex: 1 1 auto;
+  border: 0;
+  width: 100%;
+  min-height: 0;
+}
+
+/* ---- Dock resizer ---- */
+#dock-resizer {
+  height: 6px;
+  min-height: 6px;
+  cursor: row-resize;
+  background: var(--dock-border);
+}
+#dock-resizer[hidden] {
+  display: none;
+}
+
+/* ---- Dock ---- */
+#dock {
+  display: flex;
+  flex-direction: column;
+  background: var(--dock-bg);
+  color: var(--dock-fg);
+  border-top: 1px solid var(--dock-border);
+}
+#dock[hidden] {
+  display: none;
+}
+
+#dock-header {
+  height: var(--dock-header-h);
+  min-height: var(--dock-header-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  font-size: 12px;
+  user-select: none;
+}
+
+#dock-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+#dock-title .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #d97757;
+}
+#dock-cwd {
+  opacity: 0.6;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: rtl; /* middle-truncate: keep the tail (the leaf dir) visible */
+  max-width: 40vw;
+}
+
+#dock-actions button {
+  background: transparent;
+  border: 1px solid var(--dock-border);
+  color: inherit;
+  border-radius: 6px;
+  padding: 2px 8px;
+  margin-left: 6px;
+  cursor: pointer;
+  font-size: 12px;
+}
+#dock-actions button:hover {
+  background: rgba(127, 127, 127, 0.12);
+}
+
+#dock-body {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+#terminal-mount {
+  position: absolute;
+  inset: 0;
+  padding: 4px 6px;
+}
+
+#dock-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  padding: 20px;
+  background: var(--dock-bg);
+  font-size: 13px;
+}
+#dock-overlay[hidden] {
+  display: none;
+}
+#dock-overlay a {
+  color: #3b82f6;
+}
+#dock-overlay button {
+  background: #d97757;
+  color: #fff;
+  border: 0;
+  border-radius: 6px;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+
+/* Collapsed dock = header only */
+#dock.collapsed #dock-resizer,
+#dock.collapsed #dock-body {
+  display: none;
+}

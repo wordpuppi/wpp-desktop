@@ -1,0 +1,47 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "WordPuppi",
+  "version": "0.1.42",
+  "identifier": "com.wordpuppi.desktop",
+  "build": {
+    "beforeDevCommand": "pnpm run build:shell && node scripts/copy-admin.mjs",
+    "beforeBuildCommand": "pnpm run build:shell && node scripts/copy-admin.mjs",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "createUpdaterArtifacts": true,
+    "targets": [
+      "app",
+      "dmg"
+    ],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  },
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": [
+          "wordpuppi"
+        ]
+      }
+    },
+    "updater": {
+      "endpoints": [
+        "https://updates.wordpuppi.com/desktop/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDE2RjdENUNBMUZCRDI4NDIKUldSQ0tMMGZ5dFgzRnZEeSs0M1pGOEx4V0JhWmVMeFNJaWdIQVA2R3lCN3lWUkRzY212UXVoeGQK"
+    }
+  }
+}

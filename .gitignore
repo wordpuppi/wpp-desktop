@@ -1,0 +1,7 @@
+# Build output
+/dist
+/src-tauri/target
+/src-tauri/gen/schemas
+
+# Deps
+node_modules

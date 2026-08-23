@@ -1,0 +1,44 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Core + plugin permissions for the WordPuppi desktop shell. The fs plugin's static scope is the workspace dir (#426) plus $APPDATA (detach-to-local sqlite exports land in appDataDir/sites/); a dialog-chosen ZIP save path is granted at runtime by the dialog->fs handoff (#491, needs fs:allow-write-file), and the same handoff grants dialog-chosen upload paths for binary reads (#635 file-pick interception avoids the WKWebView native panel crash, needs fs:allow-read-file). opener:default lets the webview open external urls in the default browser (#488). http:default is scoped to exactly the three API bases so the admin's apiRequest runs over native HTTP with no webview CORS (DECISIONS §12). App-defined terminal_* commands are not ACL-gated.",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "core:event:default",
+    "core:window:default",
+    "core:window:allow-set-focus",
+    "core:window:allow-start-dragging",
+    "core:webview:default",
+    "core:app:default",
+    "store:default",
+    "dialog:default",
+    "opener:default",
+    {
+      "identifier": "http:default",
+      "allow": [
+        { "url": "http://localhost:5150/*" },
+        { "url": "https://app-qa.wordpuppi.com/*" },
+        { "url": "https://app.wordpuppi.com/*" }
+      ]
+    },
+    "updater:default",
+    "deep-link:default",
+    {
+      "identifier": "fs:scope",
+      "allow": [
+        { "path": "$HOME/WordPuppi" },
+        { "path": "$HOME/WordPuppi/**" },
+        { "path": "$APPDATA" },
+        { "path": "$APPDATA/**" }
+      ]
+    },
+    "fs:allow-read-text-file",
+    "fs:allow-write-text-file",
+    "fs:allow-write-file",
+    "fs:allow-read-file",
+    "fs:allow-read-dir",
+    "fs:allow-mkdir",
+    "fs:allow-exists"
+  ]
+}
