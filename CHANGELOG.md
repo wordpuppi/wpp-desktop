@@ -1,5 +1,15 @@
 # WordPuppi Desktop — Changelog
 
+## 0.1.46
+
+- API keys moved to Account → API Keys (`/account/api-keys`); the old per-site
+  path redirects there. Keys are per-user, not per-site (AB#654).
+- Copy now actually reports the truth: one shared clipboard helper (awaited,
+  execCommand fallback, error toast) and a "Copied ✓" pill only after the write
+  resolves. View reveals the full key with Copy (AB#655).
+- Rotate: mints a replacement key and revokes the old one in one step; Revoke
+  now confirms and revoked keys read as terminal (AB#656, AB#654).
+
 ## 0.1.45
 
 - No functional change. This release exists to exercise the GitHub update path
