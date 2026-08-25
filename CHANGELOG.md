@@ -1,5 +1,15 @@
 # WordPuppi Desktop — Changelog
 
+## 0.1.49
+
+- Baxter, your AI co-editor (AB#645, lean v1): a right-rail chat on every site
+  page (toggle in the sidebar footer) that can write and edit posts and pages,
+  tweak the theme, schedule barks, queue posts to connected platforms, connect
+  platforms, and build/deploy the site — through the same tools the MCP
+  server exposes. Deletes, deploys and anything that leaves WordPuppi pause
+  for an Approve/Reject card. Chat history lives in the site's content DB.
+  Streams over the desktop's native HTTP (no shell changes needed).
+
 ## 0.1.46
 
 - API keys moved to Account → API Keys (`/account/api-keys`); the old per-site
