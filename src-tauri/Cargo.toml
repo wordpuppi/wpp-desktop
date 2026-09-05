@@ -6,7 +6,7 @@
 
 [package]
 name = "wordpuppi-desktop"
-version = "0.1.50"
+version = "0.1.51"
 edition = "2021"
 rust-version = "1.77"
 
