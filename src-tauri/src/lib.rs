@@ -31,6 +31,23 @@ fn is_external(url: &Url) -> bool {
     }
 }
 
+
+/// Only our isolated, capability-scoped preview routes may navigate embedded
+/// frames. They retain their server sandbox and receive no remote IPC grants.
+fn is_preview_navigation(url: &Url) -> bool {
+    if url.scheme() != "https"
+        || !matches!(url.host_str(), Some("preview-qa.wordpuppi.com" | "preview.wordpuppi.com"))
+        || url.port_or_known_default() != Some(443)
+        || !url.username().is_empty() || url.password().is_some()
+    { return false; }
+    let Some(mut parts) = url.path_segments() else { return false; };
+    if parts.next() != Some("preview") { return false; }
+    let Some(slug) = parts.next() else { return false; };
+    let Some(key) = parts.next() else { return false; };
+    !slug.is_empty() && slug.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
+        && key.len() == 43 && key.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
+}
+
 /// Debug-only local backend lifecycle: `tauri dev` spawns the wpp-core server
 /// (env "local" needs :5150) and app exit kills it — no orphaned `cargo run`
 /// processes after closing the window. If something already listens on :5150
@@ -378,7 +395,7 @@ pub fn run() {
                 .inner_size(1400.0, 900.0)
                 .min_inner_size(1100.0, 700.0)
                 .on_navigation(move |url| {
-                    if is_external(url) {
+                    if is_external(url) && !is_preview_navigation(url) {
                         // route to default browser, cancel the in-webview nav
                         let _ = opener.opener().open_url(url.as_str(), None::<&str>);
                         return false;
@@ -567,8 +584,30 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-    use super::is_external;
+    use super::{is_external, is_preview_navigation};
     use tauri::Url;
+
+    #[test]
+    fn only_isolated_capability_previews_can_navigate_inside() {
+        let key = "a".repeat(43);
+        let allowed = |url: &str| is_preview_navigation(&Url::parse(url).unwrap());
+        for host in ["preview-qa.wordpuppi.com", "preview.wordpuppi.com"] {
+            assert!(allowed(&format!("https://{host}/preview/my-site/{key}/")));
+            assert!(allowed(&format!("https://{host}:443/preview/my-site/{key}/new-page/?v=1")));
+            // New-window links still take the existing external-browser path.
+            assert!(is_external(&Url::parse(&format!("https://{host}/preview/my-site/{key}/")).unwrap()));
+        }
+        for url in [
+            format!("http://preview.wordpuppi.com/preview/site/{key}/"),
+            format!("https://preview.wordpuppi.com:444/preview/site/{key}/"),
+            format!("https://preview.wordpuppi.com.evil.test/preview/site/{key}/"),
+            format!("https://app.wordpuppi.com/preview/site/{key}/"),
+            format!("https://user@preview.wordpuppi.com/preview/site/{key}/"),
+            format!("https://preview.wordpuppi.com/api/site/{key}/"),
+            format!("https://preview.wordpuppi.com/preview/../site/{key}/"),
+            "https://preview.wordpuppi.com/preview/site/not-a-capability/".into(),
+        ] { assert!(!allowed(&url), "{url}"); }
+    }
 
     #[test]
     fn external_vs_internal() {
