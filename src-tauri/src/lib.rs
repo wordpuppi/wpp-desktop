@@ -48,6 +48,17 @@ fn is_preview_navigation(url: &Url) -> bool {
         && key.len() == 43 && key.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
 }
 
+// WebKit reports background iframe navigation through the same callback as
+// clicked links. A sandboxed preview's Turnstile frame must not open browser tabs.
+fn is_turnstile_navigation(url: &Url) -> bool {
+    url.scheme() == "https"
+        && url.host_str() == Some("challenges.cloudflare.com")
+        && url.port_or_known_default() == Some(443)
+        && url.username().is_empty()
+        && url.password().is_none()
+        && url.path().starts_with("/cdn-cgi/challenge-platform/")
+}
+
 /// Debug-only local backend lifecycle: `tauri dev` spawns the wpp-core server
 /// (env "local" needs :5150) and app exit kills it — no orphaned `cargo run`
 /// processes after closing the window. If something already listens on :5150
@@ -395,6 +406,9 @@ pub fn run() {
                 .inner_size(1400.0, 900.0)
                 .min_inner_size(1100.0, 700.0)
                 .on_navigation(move |url| {
+                    if is_turnstile_navigation(url) {
+                        return false;
+                    }
                     if is_external(url) && !is_preview_navigation(url) {
                         // route to default browser, cancel the in-webview nav
                         let _ = opener.opener().open_url(url.as_str(), None::<&str>);
@@ -405,6 +419,9 @@ pub fn run() {
                 .on_new_window({
                     let opener = app.handle().clone();
                     move |url, _features| {
+                        if is_turnstile_navigation(&url) {
+                            return NewWindowResponse::Deny;
+                        }
                         if is_external(&url) {
                             let _ = opener.opener().open_url(url.as_str(), None::<&str>);
                             return NewWindowResponse::Deny;
@@ -584,8 +601,25 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-    use super::{is_external, is_preview_navigation};
+    use super::{is_external, is_preview_navigation, is_turnstile_navigation};
     use tauri::Url;
+
+    #[test]
+    fn turnstile_frames_do_not_become_external_browser_tabs() {
+        let blocked = |url: &str| is_turnstile_navigation(&Url::parse(url).unwrap());
+        assert!(blocked("https://challenges.cloudflare.com/cdn-cgi/challenge-platform/h/b/turnstile/frame"));
+        assert!(blocked("https://challenges.cloudflare.com:443/cdn-cgi/challenge-platform/h/b/turnstile/frame?retry=1"));
+        for url in [
+            "https://www.cloudflare.com/privacypolicy/",
+            "https://challenges.cloudflare.com/other-path",
+            "https://challenges.cloudflare.com.evil.test/cdn-cgi/challenge-platform/frame",
+            "http://challenges.cloudflare.com/cdn-cgi/challenge-platform/frame",
+            "https://challenges.cloudflare.com:444/cdn-cgi/challenge-platform/frame",
+            "https://user@challenges.cloudflare.com/cdn-cgi/challenge-platform/frame",
+        ] {
+            assert!(!blocked(url), "{url}");
+        }
+    }
 
     #[test]
     fn only_isolated_capability_previews_can_navigate_inside() {
