@@ -73,7 +73,15 @@ mod dev_backend {
     /// The cargo-run backend we spawned (None = external one, not ours to kill).
     pub struct DevBackend(pub Mutex<Option<Child>>);
 
+    fn uses_local_backend(default_env: Option<&str>) -> bool {
+        default_env != Some("qa")
+    }
+
     pub fn spawn() -> Option<Child> {
+        // Match the shell's existing build-time QA default before any local socket/DB access.
+        if !uses_local_backend(option_env!("VITE_DEFAULT_ENV")) {
+            return None;
+        }
         if std::net::TcpStream::connect(("127.0.0.1", 5150)).is_ok() {
             eprintln!("[wpp-desktop] backend already on :5150 — leaving its lifecycle alone");
             return None;
@@ -100,6 +108,14 @@ mod dev_backend {
                 eprintln!("[wpp-desktop] failed to spawn local backend: {e}");
                 None
             }
+        }
+    }
+
+    #[test]
+    fn hosted_qa_never_starts_the_local_backend() {
+        assert!(!uses_local_backend(Some("qa")));
+        for default in [None, Some("local"), Some("prod")] {
+            assert!(uses_local_backend(default));
         }
     }
 
