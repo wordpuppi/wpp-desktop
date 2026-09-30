@@ -1,5 +1,13 @@
 # WordPuppi Desktop — Changelog
 
+## 0.1.67
+
+- Windows x64 alpha installer (`WordPuppi_0.1.67_x64-setup.exe`) on the GitHub
+  release, auto-updating (AB#776). It is not code-signed yet (AB#777), so
+  SmartScreen warns "Windows protected your PC" — click More info → Run anyway.
+- Release notes now say which file is for which OS; the Linux and Windows
+  builds are labelled alpha (AB#778).
+
 ## 0.1.66
 
 - Linux x64 builds for the first time: AppImage (auto-updates), .deb and .rpm
