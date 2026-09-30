@@ -1,5 +1,16 @@
 # WordPuppi Desktop — Changelog
 
+## 0.1.66
+
+- Linux x64 builds for the first time: AppImage (auto-updates), .deb and .rpm
+  on the GitHub release (AB#775/776). Needs webkit2gtk-4.1 (Ubuntu 22.04+,
+  Debian 12+, Fedora 37+).
+- Windows and Linux fixes: the terminal dock opens %COMSPEC% on Windows,
+  Ctrl+` toggles the dock off macOS, and "Check for Updates…" sits in the one
+  Help menu instead of a second one (AB#773).
+- Windows installers are built but not published until they are code-signed
+  (AB#777).
+
 ## 0.1.49
 
 - Baxter, your AI co-editor (AB#645, lean v1): a right-rail chat on every site

@@ -518,8 +518,15 @@ pub fn run() {
                 }
                 #[cfg(not(target_os = "macos"))]
                 {
-                    let help = SubmenuBuilder::new(app, "Help").item(&check_updates).build()?;
-                    menu.append(&help)?;
+                    // Menu::default already has a Help menu on Windows/Linux —
+                    // reuse it (appending a second one showed "Help" twice, AB#775).
+                    let help = menu.items()?.into_iter().find_map(|i| {
+                        i.as_submenu().filter(|s| s.text().ok().as_deref() == Some("Help")).cloned()
+                    });
+                    match help {
+                        Some(help) => help.append(&check_updates)?,
+                        None => menu.append(&SubmenuBuilder::new(app, "Help").item(&check_updates).build()?)?,
+                    }
                     let file = SubmenuBuilder::new(app, "File").item(&settings).build()?;
                     menu.insert(&file, 0)?;
                 }

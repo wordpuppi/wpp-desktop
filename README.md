@@ -31,6 +31,65 @@ macOS artifacts are Developer-ID signed, notarized, and stapled. The app
 auto-updates from the Releases page here, with `updates.wordpuppi.com` as a
 fallback (see [Updater signing](#7-updater-signing)).
 
+## Building for Windows (from the Mac)
+
+The Windows x64 NSIS installer is cross-compiled on Apple Silicon with
+[cargo-xwin](https://github.com/rust-cross/cargo-xwin) — no Windows machine.
+One-time setup:
+
+```sh
+brew install nsis llvm lld
+cargo install --locked cargo-xwin
+rustup target add x86_64-pc-windows-msvc --toolchain nightly-2026-07-13
+```
+
+The first build downloads the MSVC CRT + Windows SDK (~1.1 GB, cached in
+`~/Library/Caches/cargo-xwin`); cargo-xwin accepts Microsoft's license
+itself, so running it means you accept it. Then, from the monorepo root:
+
+```sh
+TAURI_SIGNING_PRIVATE_KEY=... ./deploy/desktop-win.sh   # SKIP_ADMIN_BUILD=1 to reuse admin dist
+```
+
+Output: `src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/WordPuppi_<ver>_x64-setup.exe`
+plus its updater `.sig`. The installer is **not Authenticode-signed**, so
+SmartScreen shows "unknown publisher" on first run. `bundle.targets` in
+`tauri.conf.json` stays `["app","dmg"]`; the Windows (and Linux) scripts pass
+`--bundles` explicitly so a plain mac `tauri build` is unchanged.
+
+## Building for Linux (Docker on the Mac)
+
+Linux bundles are built inside an Ubuntu 22.04 container
+(`deploy/desktop-linux.Dockerfile`) under Docker Desktop. Docker Desktop has
+to be running. From the monorepo root:
+
+```sh
+TAURI_SIGNING_PRIVATE_KEY=... ./deploy/desktop-linux.sh          # amd64, the release target (emulated)
+TAURI_SIGNING_PRIVATE_KEY=... ./deploy/desktop-linux.sh arm64    # native, quick smoke
+```
+
+The script mounts the repo read-only and rsyncs it into a Docker volume
+before running `pnpm install`. The host's macOS `node_modules` are never
+touched. Cargo and pnpm caches live in named volumes (`wpp-desktop-*`), so
+reruns are incremental. Output keeps Tauri's file names:
+
+```
+src-tauri/target/linux-<arch>/bundle/appimage/WordPuppi_<ver>_{amd64|aarch64}.AppImage (+ .sig)
+src-tauri/target/linux-<arch>/bundle/deb/WordPuppi_<ver>_{amd64|arm64}.deb (+ .sig)
+src-tauri/target/linux-<arch>/bundle/rpm/WordPuppi-<ver>-1.{x86_64|aarch64}.rpm (+ .sig)
+```
+
+- **The AppImage is the updater artifact.** Its `.sig` goes into
+  `latest.json`. The `.deb` and `.rpm` packages are for installing only.
+- Systems that run the `.deb`/`.rpm` need `webkit2gtk-4.1`, meaning
+  Ubuntu 22.04+ / Debian 12+ / Fedora 36+. The AppImage bundles its GTK
+  stack.
+- Build time on this Mac: arm64 takes about 6 min cold. amd64 takes about
+  9–10 min cold under emulation. Warm reruns take about 3–4 min.
+- Memory: the release profile uses `lto` + `codegen-units=1`. That linked
+  fine in the default ~7.7 GiB Docker VM. If the link is ever OOM-killed,
+  rerun with `CARGO_BUILD_JOBS=4` or raise Docker Desktop's memory limit.
+
 ## Layout
 
 - `src-tauri/` — the Rust/Tauri app (838 lines: `lib.rs` 588, `terminal.rs`

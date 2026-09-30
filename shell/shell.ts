@@ -196,12 +196,13 @@ window.addEventListener('resize', () => {
   sendResize();
 });
 
-// Cmd+` toggles the dock from anywhere. Cmd+W / Cmd+Q are never intercepted.
+// Cmd+` (Ctrl+` on Windows/Linux, AB#773) toggles the dock from anywhere.
+// Cmd/Ctrl+W and Cmd/Ctrl+Q are never intercepted.
 // Also attached inside the admin iframe (same-origin) — keyboard focus lives
 // there almost always, and the shell window never hears those keydowns
 // (Rick's "dock doesn't show up", AB#549).
 const dockKeyHandler = (e: KeyboardEvent) => {
-  if (e.metaKey && e.key === '`') {
+  if ((e.metaKey || e.ctrlKey) && e.key === '`') {
     e.preventDefault();
     toggleDock();
   }

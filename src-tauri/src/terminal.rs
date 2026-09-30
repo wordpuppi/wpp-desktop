@@ -52,9 +52,22 @@ fn workspace_dir(raw: &str) -> Result<std::path::PathBuf, String> {
 }
 
 fn home_dir() -> Result<std::path::PathBuf, String> {
+    // Windows has no HOME; USERPROFILE is its equivalent (AB#773).
     std::env::var("HOME")
+        .or_else(|_| std::env::var("USERPROFILE"))
         .map(std::path::PathBuf::from)
         .map_err(|_| "cannot expand ~: HOME is not set".to_string())
+}
+
+/// The user's shell + args (AB#773). Unix: `$SHELL -l` (login shell sources
+/// the profile). Windows has no SHELL and no `-l`: `%COMSPEC%` (cmd.exe),
+/// else powershell.exe, which ships with every supported Windows.
+fn user_shell(windows: bool, env: impl Fn(&str) -> Option<String>) -> (String, Vec<&'static str>) {
+    if windows {
+        (env("COMSPEC").unwrap_or_else(|| "powershell.exe".into()), vec![])
+    } else {
+        (env("SHELL").unwrap_or_else(|| "/bin/zsh".into()), vec!["-l"])
+    }
 }
 
 /// Spawn the user's login shell in `cwd` on a real PTY (#549: no `claude`
@@ -67,7 +80,7 @@ pub fn terminal_spawn(
     cwd: String,
 ) -> Result<(), String> {
     let cwd = workspace_dir(&cwd)?;
-    let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".into());
+    let (shell, args) = user_shell(cfg!(windows), |k| std::env::var(k).ok());
 
     // #607: claim a new generation FIRST — this both silences the old session's
     // wait thread (its captured id is now stale) and is the id our own wait
@@ -88,7 +101,7 @@ pub fn terminal_spawn(
         .map_err(|e| e.to_string())?;
 
     let mut cmd = CommandBuilder::new(shell);
-    cmd.arg("-l"); // login shell: sources the user's profile (PATH etc.)
+    cmd.args(args); // unix: -l login shell sources the user's profile (PATH etc.)
     cmd.cwd(&cwd);
     // GUI launchd env has no TERM and portable_pty doesn't add one — TUI apps
     // expect it on a PTY.
@@ -172,7 +185,7 @@ pub fn terminal_resize(
 
 #[cfg(test)]
 mod tests {
-    use super::workspace_dir;
+    use super::{user_shell, workspace_dir};
     use std::sync::atomic::{AtomicU64, Ordering};
 
     /// #607: the wait-thread guard. A session captures `my_gen = fetch_add+1`;
@@ -222,6 +235,17 @@ mod tests {
         std::fs::remove_dir(&dir).unwrap();
         // Absolute paths pass through untouched.
         assert_eq!(workspace_dir("/tmp").unwrap(), std::path::PathBuf::from("/tmp"));
+    }
+
+    /// AB#773: Windows uses COMSPEC (else powershell) with no `-l`; unix keeps `$SHELL -l`.
+    #[test]
+    fn user_shell_per_os() {
+        let comspec = |k: &str| (k == "COMSPEC").then(|| r"C:\Windows\system32\cmd.exe".to_string());
+        assert_eq!(user_shell(true, comspec), (r"C:\Windows\system32\cmd.exe".into(), vec![]));
+        assert_eq!(user_shell(true, |_| None), ("powershell.exe".into(), vec![]));
+        let bash = |k: &str| (k == "SHELL").then(|| "/bin/bash".to_string());
+        assert_eq!(user_shell(false, bash), ("/bin/bash".into(), vec!["-l"]));
+        assert_eq!(user_shell(false, |_| None), ("/bin/zsh".into(), vec!["-l"]));
     }
 
 }
