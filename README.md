@@ -31,6 +31,15 @@ macOS artifacts are Developer-ID signed, notarized, and stapled. The app
 auto-updates from the Releases page here, with `updates.wordpuppi.com` as a
 fallback (see [Updater signing](#7-updater-signing)).
 
+- **macOS:** download the universal `.dmg`, open it, and drag WordPuppi to Applications.
+- **Windows x64 (alpha):** download `*_x64-setup.exe` and run it. The installer
+  is unsigned while AB#777 is pending; in SmartScreen, choose **More info →
+  Run anyway**. The installed app checks for updates.
+- **Linux x64 (alpha):** install `webkit2gtk-4.1` on the host (Ubuntu 22.04+,
+  Debian 12+, or Fedora 37+). Download the `.AppImage`, run `chmod +x` on it,
+  then launch it for automatic updates. Alternatively install the `.deb` or
+  `.rpm`; those packages do not auto-update.
+
 ## Building for Windows (from the Mac)
 
 The Windows x64 NSIS installer is cross-compiled on Apple Silicon with
