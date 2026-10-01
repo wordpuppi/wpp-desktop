@@ -1,5 +1,11 @@
 # WordPuppi Desktop — Changelog
 
+## 0.1.68
+
+- Linux AppImage starts on newer distros (Ubuntu 24.04+/Mesa 26): it no longer
+  bundles old Wayland/X client libraries that made it abort with
+  "Could not create default EGL display: EGL_BAD_PARAMETER".
+
 ## 0.1.67
 
 - Windows x64 alpha installer (`WordPuppi_0.1.67_x64-setup.exe`) on the GitHub
