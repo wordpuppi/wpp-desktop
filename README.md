@@ -40,6 +40,13 @@ fallback (see [Updater signing](#7-updater-signing)).
   then launch it for automatic updates. Alternatively install the `.deb` or
   `.rpm`; those packages do not auto-update.
 
+In the private monorepo, a `desktop-v<version>` tag on a desktop-changing
+commit triggers `.gitea/workflows/desktop.yml`. It builds macOS, Windows x64,
+and Linux x64 before publishing artifacts and updater signatures to the
+updates host and GitHub Releases. Bump `tauri.conf.json`'s version for each
+release. The workflow skips versions whose macOS updater tarball is already
+published.
+
 ## Building for Windows (from the Mac)
 
 The Windows x64 NSIS installer is cross-compiled on Apple Silicon with
@@ -91,7 +98,7 @@ src-tauri/target/linux-<arch>/bundle/rpm/WordPuppi-<ver>-1.{x86_64|aarch64}.rpm 
 - **The AppImage is the updater artifact.** Its `.sig` goes into
   `latest.json`. The `.deb` and `.rpm` packages are for installing only.
 - Systems that run the `.deb`/`.rpm` need `webkit2gtk-4.1`, meaning
-  Ubuntu 22.04+ / Debian 12+ / Fedora 36+. The AppImage bundles its GTK
+  Ubuntu 22.04+ / Debian 12+ / Fedora 37+. The AppImage bundles its GTK
   stack.
 - Build time on this Mac: arm64 takes about 6 min cold. amd64 takes about
   9–10 min cold under emulation. Warm reruns take about 3–4 min.
