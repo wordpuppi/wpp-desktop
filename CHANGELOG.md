@@ -1,5 +1,23 @@
 # WordPuppi Desktop — Changelog
 
+## 0.1.72
+
+- Settings: a **Search** box filters the sections by name and by the fields
+  inside them (AB#1205). The AI sections now sit in the **Account** group, and
+  the list fits a laptop screen without scrolling.
+- Settings asks *Discard unsaved changes?* before switching section or closing
+  with unsaved edits (AB#1174). **Log out** is pinned under the list.
+- The site's **Content database** section has a **Manage database connections**
+  button, and the duplicate database card is gone (AB#1177).
+- Email: save without testing, see the last test result inline, read the mail
+  server's own reason when a test fails, and pick Resend or Mailgun presets.
+  One test email a minute (AB#420).
+- Database connections to private or local hosts are refused, and errors are
+  plain sentences instead of driver text (AB#1190, AB#1192).
+- Custom field slugs follow the same rule as the server (AB#1196); migration
+  screens refresh when a job ends and Posts/Pages say when the database is
+  moving (AB#1195); the ActivityPub card says "coming soon" (AB#1197).
+
 ## 0.1.68
 
 - Linux AppImage starts on newer distros (Ubuntu 24.04+/Mesa 26): it no longer
